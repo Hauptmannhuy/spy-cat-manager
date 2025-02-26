@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS notes(
+  id SERIAL PRIMARY KEY,
+  target_id INTEGER REFERENCES targets(id),
+  body TEXT
+)

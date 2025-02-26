@@ -6,14 +6,12 @@ import (
 	"net/http"
 )
 
-type application struct {
-	middleware *middleware
-}
-
 func main() {
-	app := &application{}
+	app := &application{
+		db: openAndMigrateDB(),
+	}
+
 	middleware := initMiddleware(app)
-	app.middleware = middleware
 
 	server := http.Server{
 		Addr:    "localhost:8090",
@@ -24,8 +22,4 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-func (app *application) respond(w http.ResponseWriter, r *http.Request) {
-
 }
