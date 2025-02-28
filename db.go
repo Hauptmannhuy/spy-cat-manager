@@ -26,9 +26,9 @@ func openAndMigrateDB() *sqlDB {
 		log.Fatal("Error opening DB", err)
 	}
 
-	driver, error := postgres.WithInstance(db, &postgres.Config{})
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		log.Fatal(error)
+		log.Fatal(err)
 	}
 
 	m, err := migrate.NewWithDatabaseInstance("file://migrations", "postgres", driver)
@@ -51,6 +51,20 @@ func (sql *sqlDB) createSpy(data Spy) error {
 		return err
 	}
 	return nil
+}
+
+func (sql *sqlDB) getSpies() ([]Spy, error) {
+	data := []Spy{}
+	rows, err := sql.db.Query("SELECT * FROM spies")
+	if err != nil {
+		return data, err
+	}
+	for rows.Next() {
+		s := Spy{}
+		rows.Scan(&s.Id, &s.Name, &s.Breed, &s.Salary, &s.Experience)
+		data = append(data, s)
+	}
+	return data, nil
 }
 
 func (sql *sqlDB) getSpy(id int) (Spy, error) {
@@ -113,6 +127,47 @@ func (sql *sqlDB) createMission(data Mission) error {
 	}
 
 	return err
+}
+
+func (sql *sqlDB) getMissions() ([]Mission, error) {
+	data := []Mission{}
+	rows, err := sql.db.Query("SELECT * FROM missions")
+	if err != nil {
+		return data, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		m := Mission{
+			Targets: []Target{},
+		}
+		err := rows.Scan(&m.Id, &m.SpyID, &m.CompleteState)
+		if err != nil {
+			return nil, err
+		}
+
+		targetRows, err := sql.db.Query("SELECT * FROM targets WHERE mission_id = $1", m.Id)
+		if err != nil {
+			return nil, err
+		}
+		defer targetRows.Close()
+		for targetRows.Next() {
+			var t Target
+			err = targetRows.Scan(&t.Id, &t.Name, &t.MissionId, &t.Country, &t.CompleteState)
+			if err != nil {
+				return nil, err
+			}
+			m.Targets = append(m.Targets, t)
+		}
+
+		data = append(data, m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	fmt.Println(data)
+	return data, nil
 }
 
 func (sql *sqlDB) getMission(id int) (Mission, error) {

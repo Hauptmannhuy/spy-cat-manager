@@ -4,6 +4,20 @@ import (
 	"net/http"
 )
 
+func (app *application) getSpies(w http.ResponseWriter, r *http.Request) error {
+	crudExec := crudExecutor[Spy]{
+		handler: getAllHandler[Spy]{
+			getAll: app.db.getSpies,
+		},
+	}
+	json, err := crudExec.getAll()
+	if err != nil {
+		return err
+	}
+	sendResponse(w, 200, json)
+	return nil
+}
+
 func (app *application) getSpy(w http.ResponseWriter, r *http.Request) error {
 
 	crudExec := crudExecutor[Spy]{
@@ -87,6 +101,16 @@ func (app *application) getMission(w http.ResponseWriter, r *http.Request) error
 }
 
 func (app *application) getMissions(w http.ResponseWriter, r *http.Request) error {
+	crudExec := crudExecutor[Mission]{
+		handler: getAllHandler[Mission]{
+			getAll: app.db.getMissions,
+		},
+	}
+	json, err := crudExec.getAll()
+	if err != nil {
+		return err
+	}
+	sendResponse(w, 200, json)
 	return nil
 }
 

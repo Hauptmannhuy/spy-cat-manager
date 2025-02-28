@@ -30,11 +30,13 @@ func initMiddleware(app *application) *middleware {
 
 func initRoutes(app *application) http.Handler {
 	router := mux.NewRouter()
+	router.Handle("/spies", rootHandler(app.getSpies)).Methods("GET")
 	router.Handle("/spy/{id}", rootHandler(app.getSpy)).Methods("GET")
 	router.Handle("/spy", rootHandler(app.createSpy)).Methods("POST")
 	router.Handle("/spy/{id}", rootHandler(app.updateSpy)).Methods("PUT")
 	router.Handle("/spy/{id}", rootHandler(app.deleteSpy)).Methods("DELETE")
 
+	router.Handle("/missions", rootHandler(app.getMissions)).Methods("GET")
 	router.Handle("/mission/{id}", rootHandler(app.getMission)).Methods("GET")
 	router.Handle("/mission", rootHandler(app.createMission)).Methods("POST")
 	router.Handle("/mission/{id}", rootHandler(app.updateMission)).Methods("PUT")

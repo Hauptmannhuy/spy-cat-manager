@@ -18,7 +18,7 @@ func main() {
 	middleware := initMiddleware(app)
 
 	server := http.Server{
-		Addr:    "localhost:8090",
+		Addr:    ":8090",
 		Handler: middleware,
 	}
 	fmt.Println("Server is running on localhost:8090")

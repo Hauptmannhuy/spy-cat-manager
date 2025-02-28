@@ -31,6 +31,7 @@ func getURLvar(r *http.Request, name string) int {
 }
 
 func decodeBody(body io.ReadCloser, destination interface{}) error {
+	defer body.Close()
 	bytes, err := io.ReadAll(body)
 	if err != nil {
 		return err

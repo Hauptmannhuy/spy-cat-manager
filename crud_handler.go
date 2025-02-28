@@ -32,7 +32,7 @@ type deleteHandler[T any] struct {
 	id     string
 }
 type getAllHandler[T any] struct {
-	getAll func() []T
+	getAll func() ([]T, error)
 }
 
 func (crudExec *crudExecutor[T]) create() error {
@@ -42,7 +42,10 @@ func (crudExec *crudExecutor[T]) create() error {
 	err := decodeBody(r.Body, &data)
 
 	if err != nil {
-		return err
+		return serverError{
+			reason: err.Error(),
+			code:   400,
+		}
 	}
 	validate, ok := any(data).(createValidator)
 	if ok {
@@ -53,8 +56,6 @@ func (crudExec *crudExecutor[T]) create() error {
 				code:   422,
 			}
 		}
-	} else {
-		fmt.Println("invalid")
 	}
 	err = hanler.create(data)
 	if err != nil {
@@ -66,13 +67,22 @@ func (crudExec *crudExecutor[T]) create() error {
 	return nil
 }
 
-func (crudExec *crudExecutor[T]) get() ([]byte, error) {
-	getHandler, ok := crudExec.handler.(getHandler[T])
-	if ok {
-		fmt.Println("ok")
-	} else {
-		fmt.Println("not ok")
+func (crudExec crudExecutor[T]) getAll() ([]byte, error) {
+	getAllHandler, _ := crudExec.handler.(getAllHandler[T])
+	data, err := getAllHandler.getAll()
+	if err != nil {
+		return nil, dbError{
+			reason: err.Error(),
+			code:   400,
+		}
 	}
+	json, err := encodeBody(data)
+	return json, err
+}
+
+func (crudExec *crudExecutor[T]) get() ([]byte, error) {
+	getHandler, _ := crudExec.handler.(getHandler[T])
+
 	fmt.Println("handler id", getHandler.id)
 	id := getURLvar(getHandler.r, getHandler.id)
 	data, err := getHandler.fn(id)
@@ -102,7 +112,6 @@ func (crudExec crudExecutor[T]) update() ([]byte, error) {
 			code:   500,
 		}
 	}
-	fmt.Println("decoded data", data)
 
 	validate, ok := any(data).(updateValidator)
 	if ok {
