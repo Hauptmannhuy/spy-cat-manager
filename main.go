@@ -6,11 +6,15 @@ import (
 	"net/http"
 )
 
+type application struct {
+	db *sqlDB
+}
+
 func main() {
 	app := &application{
 		db: openAndMigrateDB(),
 	}
-
+	initValidBreedsMap()
 	middleware := initMiddleware(app)
 
 	server := http.Server{

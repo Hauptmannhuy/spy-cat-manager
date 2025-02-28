@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 type middleware struct {
@@ -16,11 +18,6 @@ type routeMiddleware struct {
 	router http.Handler
 }
 
-type responseWriter struct {
-	writer http.ResponseWriter
-	status int
-}
-
 func initMiddleware(app *application) *middleware {
 
 	return &middleware{
@@ -32,10 +29,19 @@ func initMiddleware(app *application) *middleware {
 }
 
 func initRoutes(app *application) http.Handler {
-	router := http.NewServeMux()
-	router.HandleFunc("GET /spy/{id}/", app.getCat)
-	router.HandleFunc("POST /spy", app.createCat)
+	router := mux.NewRouter()
+	router.Handle("/spy/{id}", rootHandler(app.getSpy)).Methods("GET")
+	router.Handle("/spy", rootHandler(app.createSpy)).Methods("POST")
+	router.Handle("/spy/{id}", rootHandler(app.updateSpy)).Methods("PUT")
+	router.Handle("/spy/{id}", rootHandler(app.deleteSpy)).Methods("DELETE")
 
+	router.Handle("/mission/{id}", rootHandler(app.getMission)).Methods("GET")
+	router.Handle("/mission", rootHandler(app.createMission)).Methods("POST")
+	router.Handle("/mission/{id}", rootHandler(app.updateMission)).Methods("PUT")
+	router.Handle("/mission/{id}", rootHandler(app.deleteMission)).Methods("DELETE")
+	router.Handle("/mission/{id}/target", rootHandler(app.addTargetToMission)).Methods("POST")
+	router.Handle("/mission/{mission_id}/target/{target_id}", rootHandler(app.updateMissionTarget)).Methods("PATCH")
+	router.Handle("/mission/{mission_id}/target/{target_id}", rootHandler(app.deleteMissionTarget)).Methods("DELETE")
 	return router
 }
 
@@ -54,7 +60,18 @@ func (logMid *loggingMiddleware) logRequest(r *http.Request) {
 }
 
 func (logMid *loggingMiddleware) logResponse(rw *responseWriter, r *http.Request) {
-	fmt.Printf("Response - method: %s, request URI: %s, status - %d\n", r.Method, r.URL, rw.status)
+	fmt.Printf("Response - method: %s, request URI: %s, status - %d ", r.Method, r.URL, rw.status)
+	if rw.body != "" {
+		fmt.Printf("body - %s\n", rw.body)
+	} else {
+		fmt.Printf("\n")
+	}
+}
+
+type responseWriter struct {
+	writer http.ResponseWriter
+	status int
+	body   string
 }
 
 func (rw responseWriter) Header() http.Header {
@@ -62,6 +79,7 @@ func (rw responseWriter) Header() http.Header {
 }
 func (rw *responseWriter) Write(p []byte) (int, error) {
 	n, err := rw.writer.Write(p)
+	rw.body = string(p)
 	if err != nil {
 		fmt.Println(err)
 	}

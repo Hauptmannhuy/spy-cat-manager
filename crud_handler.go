@@ -35,10 +35,6 @@ type getAllHandler[T any] struct {
 	getAll func() []T
 }
 
-// func (crudExec *crudExecutor) getAll() []interface{} {
-// 	return nil
-// }
-
 func (crudExec *crudExecutor[T]) create() error {
 	hanler := crudExec.handler.(createHandler[T])
 	r := hanler.r
@@ -48,7 +44,7 @@ func (crudExec *crudExecutor[T]) create() error {
 	if err != nil {
 		return err
 	}
-	validate, ok := any(data).(validator)
+	validate, ok := any(data).(createValidator)
 	if ok {
 		valid := validate.checkCreateValidity()
 		if !valid {
@@ -57,10 +53,15 @@ func (crudExec *crudExecutor[T]) create() error {
 				code:   422,
 			}
 		}
+	} else {
+		fmt.Println("invalid")
 	}
 	err = hanler.create(data)
 	if err != nil {
-		return err
+		return dbError{
+			reason: err.Error(),
+			code:   http.StatusUnprocessableEntity,
+		}
 	}
 	return nil
 }
@@ -78,6 +79,7 @@ func (crudExec *crudExecutor[T]) get() ([]byte, error) {
 	if err != nil {
 		return nil, dbError{
 			reason: err.Error(),
+			code:   400,
 		}
 	}
 	json, err := encodeBody(data)
@@ -93,12 +95,16 @@ func (crudExec *crudExecutor[T]) get() ([]byte, error) {
 func (crudExec crudExecutor[T]) update() ([]byte, error) {
 	handler := crudExec.handler.(updateHandler[T])
 	var data T
-	err := decodeBody(handler.r.Body, data)
+	err := decodeBody(handler.r.Body, &data)
 	if err != nil {
-		return nil, err
+		return nil, serverError{
+			reason: err.Error(),
+			code:   500,
+		}
 	}
+	fmt.Println("decoded data", data)
 
-	validate, ok := any(data).(validator)
+	validate, ok := any(data).(updateValidator)
 	if ok {
 		valid := validate.checkUpdateValidity()
 		if !valid {

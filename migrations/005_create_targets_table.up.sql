@@ -3,5 +3,5 @@ CREATE TABLE IF NOT EXISTS targets(
   name TEXT,
   mission_id INT REFERENCES missions(id),
   country TEXT,
-  completed boolean
+  completed BOOLEAN DEFAULT FALSE
 )
